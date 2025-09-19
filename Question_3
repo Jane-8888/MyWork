@@ -16,3 +16,28 @@ with monthly_mentor_sessions as (
  from monthly_mentor_sessions
  group by month
  order by month
+
+------------------------------------------------------------------------------------
+
+WITH max_date AS (
+  SELECT MAX(session_date_time) as max_dt FROM sessions
+),
+month_start AS (
+  SELECT 
+    (date_trunc('month', max_dt) - INTERVAL '1 month')::date as start_date
+  FROM max_date
+),
+month_end AS (
+  SELECT 
+    date_trunc('month', max_dt)::date as end_date
+  FROM max_date
+)
+SELECT 
+  mentor_id,
+  COUNT(*) AS session_count
+FROM sessions, month_start, month_end
+WHERE session_date_time >= month_start.start_date
+  AND session_date_time < month_end.end_date
+GROUP BY mentor_id
+ORDER BY session_count DESC
+LIMIT 5
