@@ -1,0 +1,21 @@
+select
+  'mentors' as user_type,
+  COUNT(*) as inactive_count
+from users u
+where u.role = 'mentor'
+and not exists (
+   select 1
+   from sessions s
+   where s.mentor_id = u.user_id
+   )
+union all
+select
+  'mentees' as user_type,
+  count(*) as inactive_count
+ from users u
+ where u.role = 'mentee'
+ and not exists (
+   select 1
+   from sessions s
+   where s.mentee_id = u.user_id
+   )
