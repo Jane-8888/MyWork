@@ -1,0 +1,41 @@
+WITH last_full_month AS (
+  SELECT 
+    DATE_TRUNC('month', MAX(session_date_time)) - INTERVAL '1 month' AS month_start,
+    DATE_TRUNC('month', MAX(session_date_time)) AS month_end
+  FROM sessions
+),
+sessions_with_domain AS (
+  SELECT 
+    d.name AS domain_name,
+    s.session_date_time,
+    TO_CHAR(s.session_date_time, 'Day') AS day_of_week,
+    EXTRACT(DOW FROM s.session_date_time) AS day_number
+  FROM sessions s
+  JOIN domain d ON s.mentor_domain_id = d.id
+  WHERE s.session_date_time >= (SELECT month_start FROM last_full_month)
+    AND s.session_date_time < (SELECT month_end FROM last_full_month)
+),
+domain_day_counts AS (
+  SELECT 
+    domain_name,
+    day_of_week,
+    day_number,
+    COUNT(*) AS session_count
+  FROM sessions_with_domain
+  GROUP BY domain_name, day_of_week, day_number
+),
+ranked_days AS (
+  SELECT 
+    domain_name,
+    day_of_week,
+    session_count,
+    ROW_NUMBER() OVER (PARTITION BY domain_name ORDER BY session_count DESC, day_number) AS rank
+  FROM domain_day_counts
+)
+SELECT 
+  domain_name,
+  TRIM(day_of_week) AS busiest_day,
+  session_count
+FROM ranked_days
+WHERE rank = 1
+ORDER BY domain_name
