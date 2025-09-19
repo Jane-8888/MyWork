@@ -1,0 +1,6 @@
+SELECT TO_CHAR(session_date_time, 'YYYY-MM') AS month,
+ COUNT(DISTINCT mentor_id) AS unique_mentors,
+ COUNT(DISTINCT mentee_id) AS unique_mentees
+FROM sessions s
+GROUP BY TO_CHAR(session_date_time, 'YYYY-MM')
+ORDER BY month
