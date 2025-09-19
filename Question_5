@@ -1,0 +1,9 @@
+SELECT 
+    d.name AS domain_name,
+    COUNT(*) AS cancelled_sessions_count,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM sessions WHERE mentor_domain_id = d.id), 2) AS cancellation_rate_percent
+FROM sessions s
+JOIN domain d ON s.mentor_domain_id = d.id
+WHERE s.session_status = 'canceled'
+GROUP BY d.id, d.name
+ORDER BY cancelled_sessions_count DESC
