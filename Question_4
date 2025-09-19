@@ -1,0 +1,45 @@
+WITH mentor_sessions AS (
+  SELECT 
+    mentor_id,
+    session_date_time,
+    ROW_NUMBER() OVER (PARTITION BY mentor_id ORDER BY session_date_time) as session_num
+  FROM sessions
+  WHERE session_status = 'finished'
+),
+mentor_first_second AS (
+  SELECT
+    mentor_id,
+    MAX(CASE WHEN session_num = 1 THEN session_date_time END) as first_session,
+    MAX(CASE WHEN session_num = 2 THEN session_date_time END) as second_session
+  FROM mentor_sessions
+  WHERE session_num <= 2
+  GROUP BY mentor_id
+  HAVING COUNT(*) >= 2
+),
+mentee_sessions AS (
+  SELECT 
+    mentee_id,
+    session_date_time,
+    ROW_NUMBER() OVER (PARTITION BY mentee_id ORDER BY session_date_time) as session_num
+  FROM sessions
+  WHERE session_status = 'finished'
+),
+mentee_first_second AS (
+  SELECT
+    mentee_id,
+    MAX(CASE WHEN session_num = 1 THEN session_date_time END) as first_session,
+    MAX(CASE WHEN session_num = 2 THEN session_date_time END) as second_session
+  FROM mentee_sessions
+  WHERE session_num <= 2
+  GROUP BY mentee_id
+  HAVING COUNT(*) >= 2
+)
+SELECT 
+  'mentors' as user_type,
+  AVG(EXTRACT(EPOCH FROM (second_session - first_session)) / 3600) as avg_hours_between_sessions
+FROM mentor_first_second
+UNION ALL
+SELECT 
+  'mentees' as user_type,
+  AVG(EXTRACT(EPOCH FROM (second_session - first_session)) / 3600) as avg_hours_between_sessions
+FROM mentee_first_second
