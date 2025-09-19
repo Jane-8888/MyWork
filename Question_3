@@ -1,0 +1,18 @@
+with monthly_mentor_sessions as (
+   select
+     mentor_id,
+     date_trunc('month', session_date_time) as month,
+     count(*) as session_count,
+     count(distinct extract('week' from session_date_time)) as weeks_with_sessions
+   from sessions
+   where session_status = 'finished'
+   group by mentor_id, date_trunc('month', session_date_time)
+   )
+ select
+   to_char(month, 'YYY-MM') as month,
+   count(mentor_id) as active_mentors,
+   round(avg(session_count), 2) as avg_sessions_per_mentor,
+   round(avg(session_count * 1.0 / weeks_with_sessions), 2) as avg_sessions_per_week
+ from monthly_mentor_sessions
+ group by month
+ order by month
