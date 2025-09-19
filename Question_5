@@ -7,3 +7,26 @@ JOIN domain d ON s.mentor_domain_id = d.id
 WHERE s.session_status = 'canceled'
 GROUP BY d.id, d.name
 ORDER BY cancelled_sessions_count DESC
+
+
+
+----------------------------------------------------------------------------------------
+
+WITH monthly_stats AS (
+    SELECT
+        DATE_TRUNC('month', session_date_time) AS month,
+        COUNT(*) AS total_sessions,
+        SUM(CASE WHEN session_status = 'canceled' THEN 1 ELSE 0 END) AS cancelled_sessions
+    FROM sessions
+    GROUP BY DATE_TRUNC('month', session_date_time)
+)
+SELECT
+    TO_CHAR(month, 'YYYY-MM') AS month,
+    cancelled_sessions,
+    total_sessions,
+    ROUND(cancelled_sessions * 100.0 / total_sessions, 2) AS cancellation_rate_percent,
+    ROUND((cancelled_sessions * 100.0 / total_sessions) - 
+          LAG(ROUND(cancelled_sessions * 100.0 / total_sessions, 2)) 
+          OVER (ORDER BY month), 2) AS change_from_previous_month
+FROM monthly_stats
+ORDER BY month
