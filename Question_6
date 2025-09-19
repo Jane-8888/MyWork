@@ -39,3 +39,37 @@ SELECT
 FROM ranked_days
 WHERE rank = 1
 ORDER BY domain_name
+
+
+
+---------------------------------------------------------------------------------------------
+
+
+WITH direct_weekday_counts AS (
+  SELECT 
+    d.name AS direct_name,
+    EXTRACT(DOW FROM s.session_date_time) AS day_of_week_num,
+    TO_CHAR(s.session_date_time, 'Day') AS day_of_week_name,
+    COUNT(*) AS session_count
+  FROM sessions s
+  JOIN domain d ON s.mentor_domain_id = d.id
+  GROUP BY d.name, EXTRACT(DOW FROM s.session_date_time), TO_CHAR(s.session_date_time, 'Day')
+),
+ranked_days AS (
+  SELECT 
+    direct_name,
+    day_of_week_name,
+    session_count,
+    ROW_NUMBER() OVER (
+      PARTITION BY direct_name 
+      ORDER BY session_count DESC, day_of_week_num
+    ) AS rank
+  FROM direct_weekday_counts
+)
+SELECT 
+  direct_name,
+  TRIM(day_of_week_name) AS day_of_week,
+  session_count
+FROM ranked_days
+WHERE rank = 1
+ORDER BY direct_name
